@@ -8,6 +8,8 @@
 #define BUT3 PC13
 #define BUT4 PC14
 
+#define BUZ PA11
+
 #define DEBUG_RX PA9
 #define DEBUG_TX PA10
 
