@@ -80,6 +80,21 @@ void measure_analog(void){
   Debug_serial.print(buf);
 }
 
+int median(int a[], int n){
+  int temp, i, j;
+  for (i = 0; i < n; i++){
+    for (j = i + 1; j < n; j++){
+      if (a[i] > a[j]){
+        temp = a[i];
+        a[i] = a[j];
+        a[j] = temp;
+      }
+    }
+  }
+  return a[n/2];
+}
+
+
 void setup() {
   initGPIO();
   Debug_serial.begin(115200);
@@ -97,19 +112,29 @@ void setup() {
 }
 
 void loop() {
-  delay(20);
-  measure_analog();
-  
-  // Set data_frame to dummy data
-  // data_frame.ch1_x = 255;
-  // data_frame.ch1_y = 0;
-  // data_frame.ch2_x = 127;
-  // data_frame.ch2_y = 256;
-  // data_frame.but1 = 0;
-  // data_frame.but2 = 1;
-  // data_frame.but3 = 0;
-  // data_frame.but4 = 1;
+  int oversampling = 10;
+  int ch1_x_samples[oversampling];
+  int ch1_y_samples[oversampling];
+  int ch2_x_samples[oversampling];
+  int ch2_y_samples[oversampling];
+  int i;
 
+  for (i = 0; i < oversampling; i++){
+    ch1_x_samples[i] = analogRead(CH1_X) - zero_ch1x;
+    ch1_y_samples[i] = analogRead(CH1_Y) - zero_ch1y;
+    ch2_x_samples[i] = analogRead(CH2_X) - zero_ch2x;
+    ch2_y_samples[i] = analogRead(CH2_Y) - zero_ch2y;
+    delay(2);
+  }
+  
+  data_frame.ch1_x = median(ch1_x_samples, oversampling);
+  data_frame.ch1_y = median(ch1_y_samples, oversampling);
+  data_frame.ch2_x = median(ch2_x_samples, oversampling);
+  data_frame.ch2_y = median(ch2_y_samples, oversampling);
+
+
+  // measure_analog();
+  
   Debug_serial.println("Sending data");
 
   uint8_t *data = (uint8_t *)&data_frame;
@@ -125,24 +150,4 @@ void loop() {
           data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]);
   Debug_serial.println(buf);
 
-  // // Now wait for a reply
-  // uint8_t buf[RH_NRF24_MAX_MESSAGE_LEN];
-  // uint8_t len = sizeof(buf);
-  // if (radio.waitAvailableTimeout(500))
-  // { 
-  //   // Should be a reply message for us now   
-  //   if (radio.recv(buf, &len))
-  //   {
-  //     Debug_serial.print("got reply: ");
-  //     Debug_serial.println((char*)buf);
-  //   }
-  //   else
-  //   {
-  //     Debug_serial.println("recv failed");
-  //   }
-  // }
-  // else
-  // {
-  //   Debug_serial.println("No reply, is nrf24_server running?");
-  // }
 }
